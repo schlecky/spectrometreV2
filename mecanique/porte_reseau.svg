@@ -1,0 +1,121 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   xmlns:dc="http://purl.org/dc/elements/1.1/"
+   xmlns:cc="http://creativecommons.org/ns#"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   width="57.200001mm"
+   height="57.200001mm"
+   viewBox="0 0 57.200001 57.200001"
+   version="1.1"
+   id="svg8"
+   inkscape:version="0.92.2 2405546, 2018-03-11"
+   sodipodi:docname="porte_reseau.svg">
+  <defs
+     id="defs2" />
+  <sodipodi:namedview
+     id="base"
+     pagecolor="#ffffff"
+     bordercolor="#666666"
+     borderopacity="1.0"
+     inkscape:pageopacity="0.0"
+     inkscape:pageshadow="2"
+     inkscape:zoom="0.98994949"
+     inkscape:cx="213.75225"
+     inkscape:cy="130.62622"
+     inkscape:document-units="mm"
+     inkscape:current-layer="g4638"
+     showgrid="true"
+     inkscape:window-width="1276"
+     inkscape:window-height="976"
+     inkscape:window-x="1440"
+     inkscape:window-y="22"
+     inkscape:window-maximized="0"
+     inkscape:snap-bbox="true"
+     inkscape:snap-object-midpoints="true"
+     inkscape:measure-start="207.874,661.417"
+     inkscape:measure-end="245.669,661.417"
+     inkscape:snap-center="true"
+     fit-margin-top="0"
+     fit-margin-left="0"
+     fit-margin-right="0"
+     fit-margin-bottom="0">
+    <inkscape:grid
+       type="xygrid"
+       id="grid4541"
+       originx="-56.4"
+       originy="-146.4" />
+  </sodipodi:namedview>
+  <metadata
+     id="metadata5">
+    <rdf:RDF>
+      <cc:Work
+         rdf:about="">
+        <dc:format>image/svg+xml</dc:format>
+        <dc:type
+           rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
+        <dc:title></dc:title>
+      </cc:Work>
+    </rdf:RDF>
+  </metadata>
+  <g
+     inkscape:label="Calque 1"
+     inkscape:groupmode="layer"
+     id="layer1"
+     transform="translate(-56.4,-93.4)">
+    <g
+       id="g4597">
+      <circle
+         r="28.5"
+         cy="122"
+         cx="85"
+         id="path815"
+         style="color:#000000;display:inline;overflow:visible;visibility:visible;opacity:0.98799995;fill:none;fill-opacity:1;fill-rule:nonzero;stroke:#ff0000;stroke-width:0.2;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1;marker:none;enable-background:accumulate" />
+      <circle
+         style="color:#000000;display:inline;overflow:visible;visibility:visible;opacity:0.98799995;fill:none;fill-opacity:1;fill-rule:nonzero;stroke:#ff0000;stroke-width:0.2;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1;marker:none;enable-background:accumulate"
+         id="circle4520"
+         cx="85"
+         cy="122"
+         r="21.9" />
+      <circle
+         inkscape:transform-center-x="-25.25"
+         r="1.5"
+         cy="122"
+         cx="110.25"
+         id="path4543"
+         style="color:#000000;display:inline;overflow:visible;visibility:visible;opacity:0.98799995;fill:none;fill-opacity:1;fill-rule:nonzero;stroke:#ff0000;stroke-width:0.2;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1;marker:none;enable-background:accumulate" />
+      <circle
+         inkscape:transform-center-y="-25.25"
+         transform="rotate(-90)"
+         style="color:#000000;display:inline;overflow:visible;visibility:visible;opacity:0.98799995;fill:none;fill-opacity:1;fill-rule:nonzero;stroke:#ff0000;stroke-width:0.2;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1;marker:none;enable-background:accumulate"
+         id="circle4545"
+         cx="-96.75"
+         cy="85"
+         r="1.5" />
+      <circle
+         inkscape:transform-center-x="25.25"
+         r="1.5"
+         cy="-122"
+         cx="-59.75"
+         id="circle4547"
+         style="color:#000000;display:inline;overflow:visible;visibility:visible;opacity:0.98799995;fill:none;fill-opacity:1;fill-rule:nonzero;stroke:#ff0000;stroke-width:0.2;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1;marker:none;enable-background:accumulate"
+         transform="scale(-1)" />
+      <circle
+         inkscape:transform-center-y="25.25"
+         transform="rotate(90)"
+         style="color:#000000;display:inline;overflow:visible;visibility:visible;opacity:0.98799995;fill:none;fill-opacity:1;fill-rule:nonzero;stroke:#ff0000;stroke-width:0.2;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1;marker:none;enable-background:accumulate"
+         id="circle4549"
+         cx="147.25"
+         cy="-85"
+         r="1.5" />
+    </g>
+    <g
+       id="g4638"
+       transform="translate(64.75)" />
+  </g>
+</svg>
