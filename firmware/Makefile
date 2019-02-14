@@ -54,6 +54,8 @@ VPATH+=${ROOT}/utils
 IPATH=..
 IPATH+=${ROOT}
 
+LDFLAGS+=-Map ${COMPILER}/firmware.map
+
 #
 # The default rule, which causes the firmware to be built.
 #

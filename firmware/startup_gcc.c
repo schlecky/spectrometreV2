@@ -53,7 +53,7 @@ extern int main(void);
 // Reserve space for the system stack.
 //
 //*****************************************************************************
-static unsigned long pulStack[512];
+static unsigned long pulStack[1024];
 
 //*****************************************************************************
 //

@@ -15,7 +15,8 @@ class SpectrumPlot(tk.Frame):
     def __init__(self, master):
         super().__init__(master)
         #create canvas
-        self.f = Figure(figsize=(10, 5), dpi=100, tight_layout=True)
+        self.f = Figure(figsize=(8, 5), dpi=100, tight_layout=True)
+        # self.f = Figure(tight_layout=True)
         self.a = self.f.add_subplot(111)
 
         # a tk.DrawingArea
@@ -36,7 +37,7 @@ class SpectrumPlot(tk.Frame):
         #canvas.mpl_connect('key_press_event', on_key_event)
 
     def plotSpectrum(self,wl,spectrum):
-        self.a.plot(wl,spectrum)
+        self.a.plot(wl,spectrum,"-")
         self.canvas.draw()
 
     def clear(self):

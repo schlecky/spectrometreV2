@@ -3,7 +3,6 @@
 // Firmware du spectrometre V2 avec capteur CCD TCD1304
 //
 //*****************************************************************************
-
 #include "inc/hw_types.h"
 #include "inc/hw_memmap.h"
 #include "inc/hw_timer.h"
@@ -42,25 +41,42 @@
 #define NUM_PIXELS  3694
 #define RX_SIZE  64
 
+
 /* CPU Frequency in kHz*/
 #define CPUFREQ 80000
 /* Pixel clock frequency in kHz*/
 #define PIXELFREQ 1000 
 
+#define SINGLE 0
+#define MULTIPLE 1
 
-unsigned int g_ccdData[NUM_PIXELS] __attribute__ ((aligned(4)));
+#define DEBUG
+
+unsigned char buffer[RX_SIZE];
 volatile int g_pixelNum;
+volatile unsigned char acqType;
 volatile int recvIndex = 0;
 volatile int dataToRcv = 0;
 volatile tBoolean acq, trans, txOK, startAcq;
-unsigned char buffer[RX_SIZE];
-
 tDMAControlTable sDMAControlTable[64] __attribute__ ((aligned(1024)));
+/*unsigned int g_ccdData[NUM_PIXELS] __attribute__ ((aligned(4)));*/
+unsigned short g_ccdData[NUM_PIXELS] __attribute__ ((aligned(4)));
+/*unsigned int g_ccdData2[NUM_PIXELS];*/
+unsigned short g_ccdData2[NUM_PIXELS];
+
 
 // Global flag indicating that a USB configuration has been set.
 static volatile tBoolean g_bUSBConfigured = false;
 
-void resetDMA(unsigned int * dst, unsigned int size);
+void resetDMA(unsigned short * dst, unsigned int size);
+
+
+void errorFreeze(){
+    GPIOPinWrite(GPIO_PORTF_BASE, RED_LED|BLUE_LED|GREEN_LED, GREEN_LED);
+    while(1){
+
+    }
+}
 
 // Get the communication parameters in use on the UART.
 static void
@@ -138,7 +154,7 @@ ControlHandler(void *pvCBData, unsigned long ulEvent,
         // up in a release build or hang in a debug build.
         default:
 #ifdef DEBUG
-            while(1);
+            errorFreeze();
 #else
             break;
 #endif
@@ -173,14 +189,13 @@ TxHandler(void *pvCBData, unsigned long ulEvent, unsigned long ulMsgValue,
     {
         case USB_EVENT_TX_COMPLETE:
             txOK = true;
-            // Since we are using the USBBuffer, we don't need to do anything here
             break;
 
         // We don't expect to receive any other events.  Ignore any that show
         // up in a release build or hang in a debug build.
         default:
 #ifdef DEBUG
-            while(1);
+            errorFreeze();
 #else
             break;
 #endif
@@ -228,10 +243,20 @@ RxHandler(void *pvCBData, unsigned long ulEvent, unsigned long ulMsgValue,
                   recvIndex = 0;
                   }
                 // check last two bytes for startup sequence
+                // Get single acquisition
                 if((buffer[(recvIndex+RX_SIZE-2)%RX_SIZE]=='G') && (buffer[(recvIndex+RX_SIZE-1)%RX_SIZE]=='S')){
                   dataToRcv = 4; //4 bytes remaining for integration time
                   recvIndex = 0;
+                  acqType = SINGLE;
                 }
+
+                // Get sum of acquisitions
+                if((buffer[(recvIndex+RX_SIZE-2)%RX_SIZE]=='G') && (buffer[(recvIndex+RX_SIZE-1)%RX_SIZE]=='M')){
+                  dataToRcv = 8; //8 bytes remaining for integration time and number of acquisitions
+                  recvIndex = 0;
+                  acqType = MULTIPLE;
+                }
+                
             }
             break;
         }
@@ -249,7 +274,7 @@ RxHandler(void *pvCBData, unsigned long ulEvent, unsigned long ulMsgValue,
         // up in a release build or hang in a debug build.
         default:
 #ifdef DEBUG
-            while(1);
+            errorFreeze();
 #else
             break;
 #endif
@@ -266,7 +291,7 @@ RxHandler(void *pvCBData, unsigned long ulEvent, unsigned long ulMsgValue,
 //*********************************************************************
 void uDMAErrorHandler(void)
 {
-    unsigned long ulStatus;
+    unsigned int ulStatus;
     // Check for uDMA error bit
     ulStatus = uDMAErrorStatusGet();
     GPIOPinWrite(GPIO_PORTF_BASE, RED_LED|BLUE_LED|GREEN_LED, BLUE_LED);
@@ -287,7 +312,7 @@ void uDMAErrorHandler(void)
 void transmitData(){
   unsigned int i=0;
   unsigned int k;
-  volatile unsigned int toSend;
+  unsigned int toSend;
 
   GPIOPinWrite(GPIO_PORTF_BASE, RED_LED|BLUE_LED|GREEN_LED, BLUE_LED);
 #ifdef DEBUG
@@ -296,8 +321,8 @@ void transmitData(){
   while(i<NUM_PIXELS){
     toSend = NUM_PIXELS-i>32?32:NUM_PIXELS-i;
     for(k=0;k<toSend;k++){
-      buffer[2*k] = g_ccdData[i] & 0xFF;
-      buffer[2*k+1] = (g_ccdData[i]>>8) & 0xFF;
+      buffer[2*k] = g_ccdData2[i] & 0xFF;
+      buffer[2*k+1] = (g_ccdData2[i]>>8) & 0xFF;
       i++;
     }
     while(txOK==false){
@@ -309,11 +334,9 @@ void transmitData(){
         buffer, 2*toSend, true);
 #ifdef DEBUG
     if(res==0){
-    UARTprintf("Erreur");
+      UARTprintf("Erreur");
     }
 #endif
-    //UARTprintf("%d,%d;",c[0], c[1] );
-    //SysCtlDelay(1000);
   }
 #ifdef DEBUG
   UARTprintf("OK\r\n");
@@ -334,7 +357,6 @@ void ADCSeq0IntHandler(void){
     } else {
       toTransfer = NUM_PIXELS-g_pixelNum;
     }
-    //resetDMA(&g_ccdData[g_pixelNum], 1000);
     uDMAChannelTransferSet(UDMA_CHANNEL_ADC0 | UDMA_PRI_SELECT,
         UDMA_MODE_BASIC,
         (void *)(ADC0_BASE + ADC_O_SSFIFO0 +  (0x20 * 0)),
@@ -355,10 +377,13 @@ void ADCSeq0IntHandler(void){
  * Acquisition start Interrupt Handler
  ****************************************************************/
 void acqStartIntHandler(void){
+#ifdef DEBUG
+  UARTprintf("Début Acquisition");
+#endif
   TimerIntClear(WTIMER1_BASE, TIMER_TIMA_TIMEOUT);
   resetDMA(&g_ccdData[0], 1000);
   g_pixelNum = 1000;
-  TimerSynchronize(TIMER0_BASE, TIMER_0A_SYNC|TIMER_0B_SYNC );
+  /*TimerSynchronize(TIMER0_BASE, TIMER_0A_SYNC|TIMER_0B_SYNC );*/
   ADCSequenceEnable(ADC0_BASE,0);
   ADCIntEnable(ADC0_BASE,0);
   acq=true;
@@ -388,78 +413,13 @@ void configUSB(void){
     }
 }
 
-
-
-
-/******************************************************************
-* Configure integration time (in µs).
-* change SH period and ICG if T(SH) > acqTime
- ******************************************************************/
-void setIntegrationTime(unsigned long time){
-    unsigned long ulPeriodMaster;
-    unsigned int clkFreq = PIXELFREQ; // 2MHz
-    ulPeriodMaster = CPUFREQ/clkFreq;
-
-    unsigned long integrationTime = time; // Temps d'intégration en µs
-    unsigned int shPulse = 2; // SH Pulse width in µs
-    unsigned long ulPeriodSH = integrationTime*80;
-    unsigned long dutyCycleSH = shPulse*80;
-
-    // Acquisition time 
-    unsigned int acqTime = 2*NUM_PIXELS*4*ulPeriodMaster; 
-    unsigned long ulPeriodICG;
-    if(acqTime<ulPeriodSH){
-      // Mode normal
-      ulPeriodICG = ulPeriodSH;
-    } else {
-      // Electronic shutter ICG doit etre un multiple de SH
-      ulPeriodICG = (acqTime/ulPeriodSH+1)*ulPeriodSH;
-    }
-
-    unsigned int icgPulse = 10;
-    unsigned long dutyCycleICG = icgPulse*80;
-  
-    unsigned long t3SHICG = 40;  //delai ICG-SH 0.5µs
-
-    TimerEnable(TIMER0_BASE, TIMER_A);
-    TimerEnable(TIMER0_BASE, TIMER_B);
-    TimerDisable(WTIMER0_BASE,TIMER_A);
-    TimerDisable(WTIMER0_BASE,TIMER_B);
-    TimerDisable(WTIMER1_BASE,TIMER_A);
-
-    // Configuration des timers pour SH et ICG
-    TimerLoadSet(WTIMER0_BASE, TIMER_B, ulPeriodICG -1);
-    TimerMatchSet(WTIMER0_BASE, TIMER_B, dutyCycleICG);
-    /*TimerControlLevel(WTIMER0_BASE, TIMER_B, true);*/
-    // Décalage entre SH et ICG
-    HWREG(WTIMER0_BASE + TIMER_O_TBV) = dutyCycleICG-dutyCycleSH-t3SHICG;
-    TimerLoadSet(WTIMER0_BASE, TIMER_A, ulPeriodSH -1);
-    TimerMatchSet(WTIMER0_BASE, TIMER_A, dutyCycleSH); // PWM
-
-    
-    // Interruption de début de mesure synchro ICG
-    TimerLoadSet(WTIMER1_BASE, TIMER_A, ulPeriodICG-1);
-    HWREG(WTIMER1_BASE + TIMER_O_TAV) = ulPeriodICG-1-dutyCycleSH-t3SHICG+1500;
-    IntEnable(INT_WTIMER1A);
-    TimerIntEnable(WTIMER1_BASE, TIMER_TIMA_TIMEOUT);
-
-    TimerEnable(TIMER0_BASE, TIMER_A);
-    TimerEnable(TIMER0_BASE, TIMER_B);
-    TimerEnable(WTIMER0_BASE, TIMER_A);
-    TimerEnable(WTIMER0_BASE, TIMER_B);
-    TimerEnable(WTIMER1_BASE, TIMER_A);
-
-    IntMasterEnable();
-}
-
-
-
 /******************************************************************
  * Configuration des timers
      * Timer0-A CCD clock (16bits)
      * Timer0-B Master Clock/4 : ADC-trigger (16bits)
      * WTimer0-A SH (32 bits)
      * WTimer0-B ICG (32 bits)
+     * WTimer1-A Measurement start interrupt
      * http://codeandlife.com/2012/10/30/stellaris-launchpad-pwm-tutorial/ 
  ******************************************************************/
 void configTimers(void){
@@ -482,7 +442,7 @@ void configTimers(void){
     GPIOPinTypeTimer(GPIO_PORTC_BASE, GPIO_PIN_5);
 
     
-    IntMasterDisable();
+    /*IntMasterDisable();*/
     // Configure timer for master clock
     SysCtlPeripheralEnable(SYSCTL_PERIPH_TIMER0);
     TimerConfigure(TIMER0_BASE, 
@@ -497,7 +457,12 @@ void configTimers(void){
     TimerLoadSet(TIMER0_BASE, TIMER_B, 4*ulPeriodMaster -1);
     TimerControlTrigger(TIMER0_BASE, TIMER_B, true);
 
-    /*UARTprintf("Freq acq : %d kHz\n\r", 80000/(TimerLoadGet(TIMER0_BASE, TIMER_B)+1));*/
+    // Enable CCD clock and ADC trigger timers 
+    TimerEnable(TIMER0_BASE, TIMER_A);
+    TimerEnable(TIMER0_BASE, TIMER_B);
+
+
+    UARTprintf("Freq acq : %d kHz\n\r", 80000/(TimerLoadGet(TIMER0_BASE, TIMER_B)+1));
     
     // Configuration des timers pour SH et ICG
     SysCtlPeripheralEnable(SYSCTL_PERIPH_WTIMER0);
@@ -509,9 +474,72 @@ void configTimers(void){
     SysCtlPeripheralEnable(SYSCTL_PERIPH_WTIMER1);
     
     TimerConfigure(WTIMER1_BASE,TIMER_CFG_SPLIT_PAIR|TIMER_CFG_A_PERIODIC);
-    IntMasterEnable();
+    /*IntMasterEnable();*/
     
 }
+
+
+/******************************************************************
+* Configure integration time (in µs).
+* change SH period and ICG if T(SH) > acqTime
+ ******************************************************************/
+void setIntegrationTime(unsigned long time){
+
+    /*UARTprintf("Integration Time : %u\r\n", time);*/
+    unsigned long ulPeriodMaster;
+    unsigned int clkFreq = PIXELFREQ; // 2MHz
+    ulPeriodMaster = CPUFREQ/clkFreq;
+
+    unsigned long integrationTime = time; // Temps d'intégration en µs
+    unsigned int shPulse = 2; // SH Pulse width in µs
+    unsigned long ulPeriodSH = integrationTime*80;
+    unsigned long dutyCycleSH = shPulse*80;
+
+    // Acquisition time 
+    unsigned int acqTime = 2*NUM_PIXELS*4*ulPeriodMaster; 
+    unsigned long ulPeriodICG;
+    if(acqTime<ulPeriodSH){
+      // Mode normal
+      ulPeriodICG = ulPeriodSH;
+    } else {
+      // Electronic shutter ICG doit etre un multiple de SH
+      ulPeriodICG = (acqTime/ulPeriodSH+1)*ulPeriodSH;
+    }
+
+    /*UARTprintf("ICG, SH : %u, %u\r\n", ulPeriodICG, ulPeriodSH);*/
+    unsigned int icgPulse = 10;
+    unsigned long dutyCycleICG = icgPulse*80;
+  
+    unsigned long t3SHICG = 40;  //delai ICG-SH 0.5µs
+
+    TimerDisable(WTIMER0_BASE,TIMER_A);
+    TimerDisable(WTIMER0_BASE,TIMER_B);
+    TimerDisable(WTIMER1_BASE,TIMER_A);
+
+    // Configuration des timers pour SH et ICG
+    TimerLoadSet(WTIMER0_BASE, TIMER_B, ulPeriodICG -1);
+    TimerMatchSet(WTIMER0_BASE, TIMER_B, dutyCycleICG);
+    
+    // Décalage entre SH et ICG
+    HWREG(WTIMER0_BASE + TIMER_O_TBV) = dutyCycleICG-dutyCycleSH-t3SHICG;
+    TimerLoadSet(WTIMER0_BASE, TIMER_A, ulPeriodSH -1);
+    TimerMatchSet(WTIMER0_BASE, TIMER_A, dutyCycleSH); // PWM
+    
+    // Interruption de début de mesure synchro ICG
+    TimerLoadSet(WTIMER1_BASE, TIMER_A, ulPeriodICG-1);
+    HWREG(WTIMER1_BASE + TIMER_O_TAV) = ulPeriodICG-1-dutyCycleSH-t3SHICG+3000;
+    IntEnable(INT_WTIMER1A);
+    TimerIntEnable(WTIMER1_BASE, TIMER_TIMA_TIMEOUT);
+
+    TimerEnable(WTIMER0_BASE, TIMER_A);
+    TimerEnable(WTIMER0_BASE, TIMER_B);
+    TimerEnable(WTIMER1_BASE, TIMER_A);
+
+    IntMasterEnable();
+}
+
+
+
 
 
 
@@ -532,11 +560,11 @@ void configDMA(){
 
   // Configure control parameters for DMA channel
   uDMAChannelControlSet(UDMA_CHANNEL_ADC0 | UDMA_PRI_SELECT,
-      UDMA_SIZE_32 | UDMA_SRC_INC_NONE |
-      UDMA_DST_INC_32 | UDMA_ARB_1);
+      UDMA_SIZE_16 | UDMA_SRC_INC_NONE |
+      UDMA_DST_INC_16 | UDMA_ARB_1);
 }
 
-void resetDMA(unsigned int* dst, unsigned int size){
+void resetDMA(unsigned short* dst, unsigned int size){
   uDMAChannelTransferSet(UDMA_CHANNEL_ADC0 | UDMA_PRI_SELECT,
       UDMA_MODE_BASIC,
       (void *)(ADC0_BASE + ADC_O_SSFIFO0 +  (0x20 * 0)),
@@ -592,12 +620,34 @@ void configUART(void){
     UARTStdioInit(0);
 }
 
+
+void waitAcqFinished(){
+  acq=true;
+  while(acq){}
+}
+
+
+void initBuffer2(){
+  unsigned int i;
+  for(i=0; i<NUM_PIXELS; i++){
+    g_ccdData2[i] = 0;
+  }
+}
+
+void transferToBuffer2(){
+  unsigned int i;
+  for(i=0; i<NUM_PIXELS; i++){
+    g_ccdData2[i] += g_ccdData[i];
+  }
+}
+
+
 /******************************************************************
  * Flush CCD with very short integration time
  ******************************************************************/
 void flushCCD(){
   setIntegrationTime(200); //200 µs
-  SysCtlDelay(400);
+  waitAcqFinished();
 }
 
 /******************************************************************
@@ -606,6 +656,14 @@ void flushCCD(){
  ******************************************************************/
 unsigned long integrationTimeFromBuffer(){
   return buffer[0]<<24|buffer[1]<<16|buffer[2]<<8|buffer[3] ;
+}
+
+/******************************************************************
+ * Get acquisition number from buffer received from USB UART
+ *  
+ ******************************************************************/
+unsigned long acqNumberFromBuffer(){
+  return buffer[4]<<24|buffer[5]<<16|buffer[6]<<8|buffer[7] ;
 }
 
 int main(void)
@@ -621,23 +679,33 @@ int main(void)
     configADC();
     configDMA();
     configTimers();
-    setIntegrationTime(100000);
 
     GPIOPinWrite(GPIO_PORTF_BASE, RED_LED|BLUE_LED|GREEN_LED, RED_LED);
      // Loop Forever
 
     txOK=true;
-    //unsigned char ucChar[2] ;
-    //testHandler();
     while(1)
     {
         if(startAcq){
           startAcq=false;
-          /*flushCCD();*/
+          flushCCD();
           unsigned long intTime = integrationTimeFromBuffer(); 
-          setIntegrationTime(intTime);
-          while(acq){}
-          SysCtlDelay(1000); // Wait for DMA to finish ?
+          unsigned int acqNumber;
+          if(acqType == SINGLE){
+            acqNumber = 1;
+          } else {
+            acqNumber = acqNumberFromBuffer();
+            UARTprintf("Acquisition number : %d\r\n", acqNumber);
+          }
+          initBuffer2();
+          while(acqNumber>0){
+            UARTprintf("Acquisition %d\r\n", acqNumber);
+            acqNumber--;
+            setIntegrationTime(intTime);
+            waitAcqFinished();
+            transferToBuffer2();
+          }
+          /*SysCtlDelay(5000); // Wait for DMA to finish ?*/
           transmitData();
         }
     }
