@@ -17,7 +17,10 @@ class SpectrumPlot(tk.Frame):
         #create canvas
         self.f = Figure(figsize=(8, 5), dpi=100, tight_layout=True)
         # self.f = Figure(tight_layout=True)
-        self.a = self.f.add_subplot(111)
+        self.a = self.f.add_subplot(111,autoscale_on=False)
+        self.a.set_xlim([300, 900])
+        self.a.set_ylim([-20, 9000])
+        self.contSpec, = self.a.plot(arange(3694),[0]*3694)
 
         # a tk.DrawingArea
         self.canvas = FigureCanvasTkAgg(self.f, master=self)
@@ -44,3 +47,7 @@ class SpectrumPlot(tk.Frame):
         self.a.clear()
         self.canvas.draw()
 
+    def updateContSpec(self, wl, spectrum):
+        self.contSpec.set_xdata(wl)
+        self.contSpec.set_ydata(spectrum)
+        self.canvas.draw()

@@ -19,6 +19,8 @@ class ControlPanel(tk.Frame):
     clearPlotCB = None
     getDarkCB = None
     savePlotCB = None
+    startContinuousAcqCB = None
+    stopContinuousAcqCB = None
 
 
     def __init__(self, parent):
@@ -50,6 +52,9 @@ class ControlPanel(tk.Frame):
         self.btnSave = tk.Button(self, text="Save")
         self.btnSave.config(fg=couleur['fg'], bg=couleur['bg1'], relief=tk.FLAT, highlightcolor=couleur['bdFocus'], width=12, command=self.savePlot)
 
+        self.contAcqVar = tk.IntVar()
+        self.btnContAcq = tk.Checkbutton(self, text="Cont. Acq.", variable=self.contAcqVar, command=self.contAcqChanged)
+        # self.btnContAcq.var = self.contAcqVar
         # self.btnGetDark = tk.Button(self, text="Dark")
         # self.btnGetDark.config(fg=couleur['fg'], bg=couleur['bg1'], relief=tk.FLAT, highlightcolor=couleur['bdFocus'], width=12, command=self.getDark)
 
@@ -61,7 +66,9 @@ class ControlPanel(tk.Frame):
         self.edtAvgAcqNum.grid(row=3, column=1)
         self.btnAcq.grid(row=4, column=0)
         self.btnClear.grid(row=4, column=1)
-        self.btnSave.grid(row=5, column=2)
+        self.btnSave.grid(row=5, column=0)
+        self.btnSave.grid(row=5, column=0)
+        self.btnContAcq.grid(row=5, column=1)
         # self.btnGetDark.grid(row=5,column=1)
 
     def startAcq(self):
@@ -81,3 +88,11 @@ class ControlPanel(tk.Frame):
 
     def savePlot(self):
         self.savePlotCB()
+
+    def contAcqChanged(self):
+        intTime = int(self.strAcqTime.get())
+        acqNum = int(self.strAvgNum.get())
+        if self.contAcqVar.get() == 1:
+            self.startContinuousAcqCB(intTime, acqNum)
+        else:
+            self.stopContinuousAcqCB()

@@ -23,6 +23,27 @@ def acqSpectrumCB(intTime, acqNum, transNum):
     sl.addSpectrum((wl, spectrum), intTime, acqNum, transNum) 
     plot.plotSpectrum(wl, spectrum)
 
+def startContinuousAcqCB(intTime, acqNum):
+    global gIntTime, gAcqNum, gContAcq
+    gIntTime = intTime
+    gAcqNum = acqNum
+    gContAcq = True
+    continuousAcq()
+
+def stopContinuousAcqCB():
+    global gContAcq
+    gContAcq = False
+
+
+def continuousAcq():
+    global s, plot, sl, gIntTime, gAcqNum
+    wl = s.pixelToWavelength(np.array([i+1 for i in range(NUMPIXELS)]))
+    spectrum =s.getSpectrum(gAcqNum, gIntTime)
+    # plot.clear()
+    plot.updateContSpec(wl, spectrum)
+    if gContAcq:
+        root.after(100, continuousAcq)
+
 # Delete all plotted data
 def clearPlotCB():
     global plot
@@ -63,6 +84,8 @@ cp.acqSpectrumCB = acqSpectrumCB
 cp.clearPlotCB = clearPlotCB
 cp.getDarkCB = getDarkCB
 cp.savePlotCB = savePlotCB
+cp.startContinuousAcqCB = startContinuousAcqCB
+cp.stopContinuousAcqCB = stopContinuousAcqCB
 
 sl = spectrumList.SpectrumList(root)
 sl.spectrumSelectedCB = spectrumSelectedCB
